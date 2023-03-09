@@ -1,13 +1,17 @@
 import React, {Component} from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
+  Animated,
+  Image,
+  ImageBackground,
   PanResponder,
   PanResponderGestureState,
-  PanResponderStatic,
-  Animated,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
+import RNPhotoManipulator from 'react-native-photo-manipulator';
+
+const DROP_AREA_HEIGHT = 300;
 
 type xyCoordinates = {
   x: number;
@@ -61,6 +65,13 @@ class Draggable extends Component<DraggableProps, DraggableState> {
       ),
       onPanResponderRelease: (e, gesture) => {
         if (this.isDropArea(gesture)) {
+          console.log(
+            'Dropped at: ' +
+              JSON.stringify(this.state.pan.x) +
+              ', ' +
+              JSON.stringify(this.state.pan.y),
+          );
+          console.log('_val: ' + this._val.x + ', ' + this._val.y);
           Animated.timing(this.state.opacity, {
             toValue: 0,
             duration: 1000,
@@ -76,7 +87,7 @@ class Draggable extends Component<DraggableProps, DraggableState> {
   }
 
   isDropArea(gesture: PanResponderGestureState) {
-    return gesture.moveY < 200;
+    return gesture.moveY < DROP_AREA_HEIGHT;
   }
 
   render() {
@@ -104,17 +115,42 @@ class Draggable extends Component<DraggableProps, DraggableState> {
   }
 }
 
-export default class App extends Component {
+interface AppProps {
+  //code related to your props goes here
+}
+
+interface AppState {
+  imageWidth: number | null;
+}
+
+export default class App extends Component<AppProps, AppState> {
+  constructor(props: any) {
+    super(props);
+
+    this.state = {
+      imageWidth: null,
+    };
+  }
+
   render() {
     return (
       <View style={styles.mainContainer}>
         <View style={styles.dropZone}>
-          <Text style={styles.text}>Drop them here!</Text>
+          <ImageBackground
+            source={require('./src/assets/images/profile-bg-bw.jpg')}
+            style={{height: DROP_AREA_HEIGHT}}
+            onLayout={event => {
+              var {x, y, width, height} = event.nativeEvent.layout;
+              this.setState({imageWidth: width});
+            }}>
+            <Text style={styles.text}>Drop them here!</Text>
+            <Text style={styles.dropAreaDetails}>
+              image dimensions: {this.state.imageWidth} x {DROP_AREA_HEIGHT}
+            </Text>
+          </ImageBackground>
         </View>
         <View style={styles.ballContainer} />
         <View style={styles.row}>
-          <Draggable />
-          <Draggable />
           <Draggable />
           <Draggable />
           <Draggable />
@@ -124,7 +160,7 @@ export default class App extends Component {
   }
 }
 
-let CIRCLE_RADIUS = 30;
+let CIRCLE_RADIUS = 40;
 
 const styles = StyleSheet.create({
   mainContainer: {
@@ -141,15 +177,23 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    justifyContent: 'space-evenly',
   },
   dropZone: {
-    height: 200,
+    height: DROP_AREA_HEIGHT,
     backgroundColor: '#00334d',
   },
+  dropAreaDetails: {
+    color: '#777777',
+    fontSize: 15,
+    width: '100%',
+    textAlign: 'center',
+    position: 'absolute',
+    bottom: -25,
+  },
   text: {
-    marginTop: 25,
-    marginLeft: 5,
-    marginRight: 5,
+    marginTop: 60,
+    width: '100%',
     textAlign: 'center',
     color: '#fff',
     fontSize: 25,
