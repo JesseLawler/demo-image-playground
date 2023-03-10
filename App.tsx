@@ -11,7 +11,23 @@ import {
 } from 'react-native';
 import RNPhotoManipulator from 'react-native-photo-manipulator';
 
-const DROP_AREA_HEIGHT = 300;
+const DROP_AREA_HEIGHT = 250;
+const DROP_AREA_WIDTH = 360;
+
+const BG_IMAGE_SOURCE = require('./src/assets/images/profile-bg-bw.jpg');
+
+const imageSource: any = (name: string) => {
+  switch (name) {
+    case 'apple':
+      return require('./src/assets/images/fa/apple.png');
+    case 'arrow-up':
+      return require('./src/assets/images/fa/arrow-up.png');
+    case 'bomb':
+      return require('./src/assets/images/fa/bomb.png');
+    case 'bullseye':
+      return require('./src/assets/images/fa/bullseye.png');
+  }
+};
 
 type xyCoordinates = {
   x: number;
@@ -19,7 +35,8 @@ type xyCoordinates = {
 };
 
 interface DraggableProps {
-  //code related to your props goes here
+  imageName?: string;
+  dropBehavior?: Function | null;
 }
 
 interface DraggableState {
@@ -43,6 +60,8 @@ class Draggable extends Component<DraggableProps, DraggableState> {
       this._val = value;
     });
 
+    console.log('imageName: ' + this.props.imageName);
+
     this.state = {
       showDraggable: true,
       //dropAreaValues: null,
@@ -65,13 +84,9 @@ class Draggable extends Component<DraggableProps, DraggableState> {
       ),
       onPanResponderRelease: (e, gesture) => {
         if (this.isDropArea(gesture)) {
-          console.log(
-            'Dropped at: ' +
-              JSON.stringify(this.state.pan.x) +
-              ', ' +
-              JSON.stringify(this.state.pan.y),
-          );
-          console.log('_val: ' + this._val.x + ', ' + this._val.y);
+          console.log('Dropped at: ' + this._val.x + ', ' + this._val.y);
+          if (this.props.dropBehavior)
+            this.props.dropBehavior(this.props.imageName, this._val);
           Animated.timing(this.state.opacity, {
             toValue: 0,
             duration: 1000,
@@ -102,15 +117,20 @@ class Draggable extends Component<DraggableProps, DraggableState> {
     const panStyle = {
       transform: this.state.pan.getTranslateTransform(),
     };
+    let element = this.props.imageName ? (
+      <Animated.Image
+        {...this.panResponder.panHandlers}
+        source={imageSource(this.props.imageName)}
+        style={[panStyle, styles.draggableImage, {opacity: this.state.opacity}]}
+      />
+    ) : (
+      <Animated.View
+        {...this.panResponder.panHandlers}
+        style={[panStyle, styles.circle, {opacity: this.state.opacity}]}
+      />
+    );
     if (this.state.showDraggable) {
-      return (
-        <View style={{position: 'absolute'}}>
-          <Animated.View
-            {...this.panResponder.panHandlers}
-            style={[panStyle, styles.circle, {opacity: this.state.opacity}]}
-          />
-        </View>
-      );
+      return <View style={{position: 'absolute'}}>{element}</View>;
     }
   }
 }
@@ -121,6 +141,7 @@ interface AppProps {
 
 interface AppState {
   imageWidth: number | null;
+  mergedImagePath: string;
 }
 
 export default class App extends Component<AppProps, AppState> {
@@ -129,15 +150,28 @@ export default class App extends Component<AppProps, AppState> {
 
     this.state = {
       imageWidth: null,
+      mergedImagePath: '',
     };
   }
+
+  mergeImage = (name: string, coords: xyCoordinates) => {
+    const image = BG_IMAGE_SOURCE;
+    const overlay = imageSource(name);
+    RNPhotoManipulator.overlayImage(image, overlay, coords).then(path => {
+      this.setState({mergedImagePath: path}, () =>
+        console.log(
+          `this.state.mergedImagePath: ${this.state.mergedImagePath}`,
+        ),
+      );
+    });
+  };
 
   render() {
     return (
       <View style={styles.mainContainer}>
         <View style={styles.dropZone}>
           <ImageBackground
-            source={require('./src/assets/images/profile-bg-bw.jpg')}
+            source={BG_IMAGE_SOURCE}
             style={{height: DROP_AREA_HEIGHT}}
             onLayout={event => {
               var {x, y, width, height} = event.nativeEvent.layout;
@@ -149,12 +183,16 @@ export default class App extends Component<AppProps, AppState> {
             </Text>
           </ImageBackground>
         </View>
-        <View style={styles.ballContainer} />
         <View style={styles.row}>
-          <Draggable />
-          <Draggable />
-          <Draggable />
+          <Draggable imageName={'bullseye'} dropBehavior={this.mergeImage} />
+          <Draggable imageName={'bomb'} dropBehavior={this.mergeImage} />
+          <Draggable imageName={'arrow-up'} dropBehavior={this.mergeImage} />
         </View>
+        <Image
+          source={{uri: this.state.mergedImagePath}}
+          resizeMode={'cover'}
+          style={styles.mergedImage}
+        />
       </View>
     );
   }
@@ -165,9 +203,9 @@ let CIRCLE_RADIUS = 40;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-  },
-  ballContainer: {
-    height: 200,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   circle: {
     backgroundColor: 'skyblue',
@@ -175,12 +213,17 @@ const styles = StyleSheet.create({
     height: CIRCLE_RADIUS * 2,
     borderRadius: CIRCLE_RADIUS,
   },
+  draggableImage: {
+    width: CIRCLE_RADIUS * 2,
+    height: CIRCLE_RADIUS * 2,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
   },
   dropZone: {
     height: DROP_AREA_HEIGHT,
+    width: DROP_AREA_WIDTH,
     backgroundColor: '#00334d',
   },
   dropAreaDetails: {
@@ -190,6 +233,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     position: 'absolute',
     bottom: -25,
+  },
+  mergedImage: {
+    height: DROP_AREA_HEIGHT,
+    width: DROP_AREA_WIDTH,
+    marginBottom: 30,
   },
   text: {
     marginTop: 60,
