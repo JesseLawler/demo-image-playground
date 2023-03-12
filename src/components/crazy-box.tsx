@@ -49,8 +49,12 @@ const CrazyBox = ({dimensions, imageName, onDrop}: CrazyBoxParameters) => {
     };
   });
 
-  const relayCoordinates = (coords: xyCoordinates) => {
-    if (onDrop) onDrop(coords);
+  const relayCoordinates = (
+    coords: xyCoordinates,
+    rotation: number,
+    scale: number,
+  ) => {
+    if (onDrop) onDrop(coords, rotation, scale);
   };
 
   const dragGesture = Gesture.Pan()
@@ -71,7 +75,11 @@ const CrazyBox = ({dimensions, imageName, onDrop}: CrazyBoxParameters) => {
         x: offset.value.x,
         y: offset.value.y,
       };
-      runOnJS(relayCoordinates)(start.value);
+      runOnJS(relayCoordinates)(
+        start.value,
+        savedRotation.value,
+        savedScale.value,
+      );
     })
     .onFinalize(() => {
       'worklet';

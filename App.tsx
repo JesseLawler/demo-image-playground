@@ -54,9 +54,19 @@ export default class App extends Component<AppProps, AppState> {
     });
   }
 
-  mergeImage = (name: string, coords: xyCoordinates) => {
+  mergeImage = (
+    name: string,
+    coords: xyCoordinates,
+    rotation: number,
+    scale: number,
+  ) => {
     const image = BG_IMAGE_SOURCE;
     const overlay = imageSource(name);
+
+    if (rotation !== 1) console.log('must rotate to: ' + rotation);
+
+    if (scale !== 1) console.log('must scale to: ' + scale);
+
     RNPhotoManipulator.overlayImage(image, overlay, coords).then(path => {
       this.setState({mergedImagePath: path}, () =>
         console.log(

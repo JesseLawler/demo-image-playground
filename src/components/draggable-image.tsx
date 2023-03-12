@@ -76,7 +76,11 @@ export default class DraggableImage extends Component<
     );
   }
 
-  handleDrop = (dropCoordinates: xyCoordinates) => {
+  handleDrop = (
+    dropCoordinates: xyCoordinates,
+    rotation: number,
+    scale: number,
+  ) => {
     // Determine the relative position of the dropped CrazyBox vs.
     // the page origin (which happens to be the drop-spot's origin, too).
     let adjustedCoords = {
@@ -87,9 +91,16 @@ export default class DraggableImage extends Component<
         (dropCoordinates.y + this._startLocation.y) /
         this.props.displaySizeProportion,
     };
-    console.log(`Dropped at: ${adjustedCoords.x}, ${adjustedCoords.y}`);
+    console.log(
+      `Dropped at: ${adjustedCoords.x}, ${adjustedCoords.y} with rotation: ${rotation} and scale: ${scale}`,
+    );
     if (this.props.dropBehavior)
-      this.props.dropBehavior(this.props.imageName, adjustedCoords);
+      this.props.dropBehavior(
+        this.props.imageName,
+        adjustedCoords,
+        rotation,
+        scale,
+      );
   };
 
   render() {
