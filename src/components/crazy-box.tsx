@@ -1,13 +1,26 @@
 import React from 'react';
-import {StyleSheet, View} from 'react-native';
+import {Image, StyleSheet, View} from 'react-native';
 import {GestureDetector, Gesture} from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  runOnJS,
 } from 'react-native-reanimated';
 
-const CrazyBox = () => {
+import {imageSource} from '../utils/files';
+import {xyCoordinates} from '../utils/interfaces';
+
+const MINIMUM_SIZE_RATIO = 0.1;
+const SIZE_INCREASE_ON_PRESS = 1.2;
+
+interface CrazyBoxParameters {
+  dimensions: xyCoordinates;
+  onDrop?: Function;
+  imageName?: string;
+}
+
+const CrazyBox = ({dimensions, imageName, onDrop}: CrazyBoxParameters) => {
   const isPressed = useSharedValue(false);
   const offset = useSharedValue({x: 0, y: 0});
   const start = useSharedValue({x: 0, y: 0});
@@ -21,12 +34,24 @@ const CrazyBox = () => {
       transform: [
         {translateX: offset.value.x},
         {translateY: offset.value.y},
-        {scale: withSpring(scale.value * (isPressed.value ? 1.2 : 1))},
+        {
+          scale: withSpring(
+            scale.value * (isPressed.value ? SIZE_INCREASE_ON_PRESS : 1),
+          ),
+        },
         {rotateZ: `${rotation.value}rad`},
       ],
-      backgroundColor: isPressed.value ? 'yellow' : 'red',
+      backgroundColor: imageName
+        ? 'transparent'
+        : isPressed.value
+        ? 'yellow'
+        : 'red',
     };
   });
+
+  const relayCoordinates = (coords: xyCoordinates) => {
+    if (onDrop) onDrop(coords);
+  };
 
   const dragGesture = Gesture.Pan()
     .averageTouches(true)
@@ -46,6 +71,7 @@ const CrazyBox = () => {
         x: offset.value.x,
         y: offset.value.y,
       };
+      runOnJS(relayCoordinates)(start.value);
     })
     .onFinalize(() => {
       'worklet';
@@ -73,11 +99,30 @@ const CrazyBox = () => {
     Gesture.Simultaneous(zoomGesture, rotateGesture),
   );
 
+  let draggableView = imageName ? (
+    <Animated.Image
+      source={imageSource(imageName)}
+      style={[
+        {
+          width: dimensions.x,
+          height: dimensions.y,
+        },
+        animatedStyles,
+      ]}
+    />
+  ) : (
+    <Animated.View
+      style={[
+        {width: dimensions.x, height: dimensions.y},
+        styles.box,
+        animatedStyles,
+      ]}
+    />
+  );
+
   return (
     <Animated.View>
-      <GestureDetector gesture={composed}>
-        <Animated.View style={[styles.box, animatedStyles]} />
-      </GestureDetector>
+      <GestureDetector gesture={composed}>{draggableView}</GestureDetector>
     </Animated.View>
   );
 };
@@ -87,8 +132,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   box: {
-    width: 100,
-    height: 100,
     borderRadius: 0,
     backgroundColor: 'red',
     alignSelf: 'center',
