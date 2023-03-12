@@ -10,15 +10,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import GestureHandler, {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from 'react-native-gesture-handler';
 import RNPhotoManipulator from 'react-native-photo-manipulator';
-//import {useAnimatedStyle, useSharedValue} from 'react-native-reanimated';
 
-import Ball from './src/components/ball';
+import CrazyBox from './src/components/crazy-box';
 
 const CIRCLE_RADIUS = 40;
 const DEVICE_WIDTH = Dimensions.get('window').width;
@@ -242,9 +236,6 @@ interface AppState {
 }
 
 export default class App extends Component<AppProps, AppState> {
-  //scale = useSharedValue(1);
-  //savedScale = useSharedValue(1);
-
   constructor(props: any) {
     super(props);
 
@@ -255,20 +246,6 @@ export default class App extends Component<AppProps, AppState> {
       naturalImageDimensions: null,
     };
   }
-
-  /*
-  animatedStyle = useAnimatedStyle(() => ({
-    transform: [{scale: this.scale.value}],
-  }));
-
-  pinchGesture = Gesture.Pinch()
-    .onUpdate(e => {
-      this.scale.value = this.savedScale.value * e.scale;
-    })
-    .onEnd(() => {
-      this.savedScale.value = this.scale.value;
-    });
-  */
 
   componentDidMount(): void {
     const temp = Image.resolveAssetSource(BG_IMAGE_SOURCE);
@@ -320,7 +297,7 @@ export default class App extends Component<AppProps, AppState> {
     ) : null;
 
     return (
-      <GestureHandlerRootView style={styles.mainContainer}>
+      <View style={styles.mainContainer}>
         <View style={styles.dropZone}>
           <ImageBackground
             source={BG_IMAGE_SOURCE}
@@ -342,17 +319,7 @@ export default class App extends Component<AppProps, AppState> {
             />
           ))}
         </View>
-        {/*
-        <GestureDetector gesture={this.pinchGesture}>
-          <Animated.View
-            style={[
-              {backgroundColor: 'yellow', width: 300, height: 300},
-              this.animatedStyle,
-            ]}
-          />
-        </GestureDetector>
-          */}
-        <Ball />
+        <CrazyBox />
         <View
           style={{
             width: DEVICE_WIDTH,
@@ -361,7 +328,7 @@ export default class App extends Component<AppProps, AppState> {
           }}>
           {mergedImage}
         </View>
-      </GestureHandlerRootView>
+      </View>
     );
   }
 }
