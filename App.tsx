@@ -7,7 +7,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import RNPhotoManipulator from 'react-native-photo-manipulator';
+import RNPhotoManipulator, {
+  PhotoBatchOperations,
+} from 'react-native-photo-manipulator';
 
 import {imageSource} from './src/utils/files';
 import {xyCoordinates} from './src/utils/interfaces';
@@ -25,8 +27,9 @@ interface AppState {
   arrayOfIconNames?: string[];
   displayProportion: number;
   dropAreaHeight: number;
+  mergeOperations: PhotoBatchOperations[];
   mergedImagePath: string;
-  naturalImageDimensions: xyCoordinates | null;
+  naturalImageDimensions: xyCoordinates;
 }
 
 export default class App extends Component<AppProps, AppState> {
@@ -36,8 +39,9 @@ export default class App extends Component<AppProps, AppState> {
     this.state = {
       displayProportion: 0,
       dropAreaHeight: 0,
+      mergeOperations: [],
       mergedImagePath: '',
-      naturalImageDimensions: null,
+      naturalImageDimensions: {x: 0, y: 0},
     };
   }
 
@@ -50,6 +54,17 @@ export default class App extends Component<AppProps, AppState> {
       arrayOfIconNames: ['green-square', 'arrow-up', 'caret-right'],
       displayProportion: Math.round((DEVICE_WIDTH * 1000) / temp.width) / 1000,
       dropAreaHeight: relativeHeight,
+      mergeOperations: [
+        {
+          operation: 'text' as any,
+          options: {
+            position: {x: 50, y: 30},
+            text: 'Text is GREAT!!!',
+            textSize: 30,
+            color: '#ff0000',
+          },
+        },
+      ],
       naturalImageDimensions: {x: temp.width, y: temp.height},
     });
   }
@@ -60,19 +75,45 @@ export default class App extends Component<AppProps, AppState> {
     rotation: number,
     scale: number,
   ) => {
-    const image = BG_IMAGE_SOURCE;
-    const overlay = imageSource(name);
+    // First, add an item to the array of mergeOperations
+    let arr = this.state.mergeOperations;
+    arr.push({
+      operation: 'overlay' as any,
+      overlay: imageSource(name),
+      position: coords,
+    });
+    this.setState({mergeOperations: arr}, () => {
+      // Second, after the state has been updated, (re)perform the merge...
+      const image = BG_IMAGE_SOURCE;
+      const cropRegion = {
+        x: 0,
+        y: 0,
+        width: this.state.naturalImageDimensions.x,
+        height: this.state.naturalImageDimensions.y,
+      }; // i.e. no crop whatsoever
+      const targetSize = {
+        width: this.state.naturalImageDimensions.x,
+        height: this.state.naturalImageDimensions.y,
+      }; // i.e. same size
+      const quality = 90;
 
-    if (rotation !== 1) console.log('must rotate to: ' + rotation);
+      if (rotation !== 1) console.log('must rotate to: ' + rotation); // JESSEFIX
 
-    if (scale !== 1) console.log('must scale to: ' + scale);
+      if (scale !== 1) console.log('must scale to: ' + scale); // JESSEFIX
 
-    RNPhotoManipulator.overlayImage(image, overlay, coords).then(path => {
-      this.setState({mergedImagePath: path}, () =>
-        console.log(
-          `this.state.mergedImagePath: ${this.state.mergedImagePath}`,
-        ),
-      );
+      RNPhotoManipulator.batch(
+        image,
+        this.state.mergeOperations,
+        cropRegion,
+        targetSize,
+        quality,
+      ).then(path => {
+        this.setState({mergedImagePath: path}, () =>
+          console.log(
+            `this.state.mergedImagePath: ${this.state.mergedImagePath}`,
+          ),
+        );
+      });
     });
   };
 
