@@ -3,14 +3,10 @@ import {Image, View} from 'react-native';
 
 import DraggableItem from './draggable-item';
 import {imageSource} from '../utils/files';
+import {xyCoordinates} from '../utils/interfaces';
 
 const UNDEFINED_NUMBER = -1;
 const MINIMUM_SIZE_RATIO = 0.1;
-
-export type xyCoordinates = {
-  x: number;
-  y: number;
-};
 
 interface SuperimposePaletteButtonProps {
   imageName?: string;

@@ -18,27 +18,32 @@ const CIRCLE_RADIUS = 40;
 const DEVICE_WIDTH = Dimensions.get('window').width;
 const BG_IMAGE_SOURCE = require('./src/assets/images/profile-bg-bw.jpg');
 const MERGE_HIGHLIGHT_COLOR = '#cc00ff';
+const OUTPUT_IMAGE_FORMAT = 'jpg';
+const OUTPUT_IMAGE_FILENAME = 'myfile.' + OUTPUT_IMAGE_FORMAT;
+const OUTPUT_IMAGE_QUALITY = 0.9;
 
 interface AppProps {
   //code related to your props goes here
 }
 
 interface AppState {
-  arrayOfIconNames?: string[];
+  arrayOfIconNames: string[];
   displayProportion: number;
   dropAreaHeight: number;
-  imageLayers: any[]; // JESSEFIX
+  imageLayers: any[];
   mergedImage: any;
   naturalImageDimensions: xyCoordinates;
 }
 
 export default class App extends Component<AppProps, AppState> {
   private _layoutArea: any;
+  private _layerCounter = 0;
 
   constructor(props: any) {
     super(props);
 
     this.state = {
+      arrayOfIconNames: [],
       displayProportion: 0,
       dropAreaHeight: 0,
       imageLayers: [],
@@ -95,8 +100,7 @@ export default class App extends Component<AppProps, AppState> {
     });
   };
 
-  // JESSEFIX - make better name
-  mergeImage = async (
+  setImageOverlay = async (
     name: string,
     coords: xyCoordinates,
     rotation: number,
@@ -109,6 +113,7 @@ export default class App extends Component<AppProps, AppState> {
       ((1 - scale) * (naturalSize.y * this.state.displayProportion)) / 2;
     let newImage = (
       <Image
+        key={this._layerCounter.toString()}
         source={imageSource(name)}
         style={[
           {
@@ -132,6 +137,7 @@ export default class App extends Component<AppProps, AppState> {
         ]}
       />
     );
+    this._layerCounter += 1;
 
     // Add newImage to the imageLayers array
     let arr = this.state.imageLayers;
@@ -169,15 +175,15 @@ export default class App extends Component<AppProps, AppState> {
           </ImageBackground>
         </View>
         <View style={styles.row}>
-          {this.state.arrayOfIconNames?.map((iconName: string) => (
+          {this.state.arrayOfIconNames.map(iconName => (
             <SuperimposePaletteButton
+              key={iconName}
               imageName={iconName}
-              dropBehavior={this.mergeImage}
+              dropBehavior={this.setImageOverlay}
               displaySizeProportion={this.state.displayProportion}
             />
           ))}
         </View>
-
         <Pressable
           style={{
             paddingVertical: 8,
@@ -200,9 +206,9 @@ export default class App extends Component<AppProps, AppState> {
             marginBottom: 30,
           }}
           options={{
-            fileName: 'Your-File-Name-JESSEFIX',
-            format: 'jpg',
-            quality: 0.9,
+            fileName: OUTPUT_IMAGE_FILENAME,
+            format: OUTPUT_IMAGE_FORMAT,
+            quality: OUTPUT_IMAGE_QUALITY,
           }}>
           <ImageBackground
             source={BG_IMAGE_SOURCE}
