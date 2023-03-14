@@ -11,8 +11,8 @@ import Animated, {
 import {imageSource} from '../utils/files';
 import {xyCoordinates} from '../utils/interfaces';
 
-const MINIMUM_SIZE_RATIO = 0.1;
-const SIZE_INCREASE_ON_PRESS = 1.0; // JESSEFIX
+const MINIMUM_SCALE = 0.3;
+const SIZE_INCREASE_ON_PRESS = 1.2;
 
 interface DraggableItemParameters {
   dimensions: xyCoordinates;
@@ -45,11 +45,9 @@ const DraggableItem = ({
         },
         {rotateZ: `${rotation.value}rad`},
       ],
-      backgroundColor: imageName
-        ? 'transparent'
-        : isPressed.value
-        ? 'yellow'
-        : 'red',
+      backgroundColor: isPressed.value ? '#cc00ff11' : 'transparent',
+      borderWidth: 1,
+      borderColor: isPressed.value ? '#cc00ff33' : 'transparent',
     };
   });
 
@@ -93,7 +91,7 @@ const DraggableItem = ({
 
   const zoomGesture = Gesture.Pinch()
     .onUpdate(event => {
-      scale.value = savedScale.value * event.scale;
+      scale.value = Math.max(MINIMUM_SCALE, savedScale.value * event.scale);
     })
     .onEnd(() => {
       savedScale.value = scale.value;

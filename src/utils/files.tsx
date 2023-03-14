@@ -1,4 +1,3 @@
-import {Image, ImageSourcePropType} from 'react-native';
 import RNPhotoManipulator, {ImageSource} from 'react-native-photo-manipulator';
 import {MimeType} from 'react-native-photo-manipulator/lib/PhotoManipulatorTypes';
 import {xyCoordinates} from './interfaces';
@@ -22,15 +21,14 @@ export function imageSource(name: string) {
   }
 }
 
-// JESSEFIX - give this a more better name
-export async function getImageFilePath(
+export async function createLocalImageFile(
   image: ImageSource,
   size: xyCoordinates,
 ): Promise<any> {
   let result = null;
   const cropRegion = {x: 0, y: 0, height: size.y, width: size.x};
   const targetSize = {height: size.y, width: size.x};
-  const mimeType = MimeType.PNG;
+  const mimeType = MimeType.PNG; // alternately, JPEG
   await RNPhotoManipulator.crop(image, cropRegion, targetSize, mimeType).then(
     path => {
       console.log('PATH is ' + path);
@@ -38,8 +36,4 @@ export async function getImageFilePath(
     },
   );
   return result;
-}
-
-export function rotateImage(uri: ImageSourcePropType): JSX.Element {
-  return <Image source={uri} style={{transform: [{rotateZ: `1.0rad`}]}} />;
 }
