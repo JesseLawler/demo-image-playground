@@ -1,3 +1,4 @@
+import {Image, ImageSourcePropType} from 'react-native';
 import RNPhotoManipulator, {ImageSource} from 'react-native-photo-manipulator';
 import {MimeType} from 'react-native-photo-manipulator/lib/PhotoManipulatorTypes';
 import {xyCoordinates} from './interfaces';
@@ -37,4 +38,8 @@ export async function getImageFilePath(
     },
   );
   return result;
+}
+
+export function rotateImage(uri: ImageSourcePropType): JSX.Element {
+  return <Image source={uri} style={{transform: [{rotateZ: `1.0rad`}]}} />;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Image, StyleSheet, View} from 'react-native';
+import {StyleSheet} from 'react-native';
 import {GestureDetector, Gesture} from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -46,7 +46,7 @@ const DraggableItem = ({
         {rotateZ: `${rotation.value}rad`},
       ],
       backgroundColor: imageName
-        ? 'rgba(100,0,200,0.4)' // JESSEFIX 'transparent'
+        ? 'transparent'
         : isPressed.value
         ? 'yellow'
         : 'red',
@@ -79,7 +79,7 @@ const DraggableItem = ({
         x: offset.value.x,
         y: offset.value.y,
       };
-      console.log(`offset.value.y: ${offset.value.y}`);
+      //console.log(`offset.value.y: ${offset.value.y}`);
       runOnJS(relayCoordinates)(
         start.value,
         savedRotation.value,

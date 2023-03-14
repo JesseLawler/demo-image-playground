@@ -3,6 +3,7 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  ImageSourcePropType,
   StyleSheet,
   Text,
   View,
@@ -13,7 +14,7 @@ import RNPhotoManipulator, {
 } from 'react-native-photo-manipulator';
 import ImageResizer from '@bam.tech/react-native-image-resizer';
 
-import {getImageFilePath, imageSource} from './src/utils/files';
+import {getImageFilePath, imageSource, rotateImage} from './src/utils/files';
 import {xyCoordinates} from './src/utils/interfaces';
 import SuperimposePaletteButton from './src/components/superimpose-palette-button';
 
@@ -32,6 +33,7 @@ interface AppState {
   mergeOperations: PhotoBatchOperations[];
   mergedImagePath: string;
   naturalImageDimensions: xyCoordinates;
+  rotatedImage: any; // JESSEFIX
 }
 
 export default class App extends Component<AppProps, AppState> {
@@ -44,6 +46,7 @@ export default class App extends Component<AppProps, AppState> {
       mergeOperations: [],
       mergedImagePath: '',
       naturalImageDimensions: {x: 0, y: 0},
+      rotatedImage: null,
     };
   }
 
@@ -54,10 +57,10 @@ export default class App extends Component<AppProps, AppState> {
     );
     this.setState({
       arrayOfIconNames: [
-        'blue-square',
-        //'green-square',
+        //'blue-square',
+        'green-square',
         'arrow-up',
-        //'caret-right',
+        'caret-right',
       ],
       displayProportion: Math.round((DEVICE_WIDTH * 1000) / temp.width) / 1000,
       dropAreaHeight: relativeHeight,
@@ -87,16 +90,18 @@ export default class App extends Component<AppProps, AppState> {
   ) => {
     const RESIZE_QUALITY = 100; // do this transformation at max quality, since it's going to be re-smashed into the background image in the next step
     const MERGE_QUALITY = 90;
+    let newImage: JSX.Element = <View />; // empty default
     let imageToOverlay: ImageSource = imageSource(name); // default
-    if (rotation !== 0) console.log('must rotate to: ' + rotation); // JESSEFIX
     // First rotate + resize the image, if necessary
-    if (scale !== 1) {
+    if (scale !== 1 || rotation !== 0) {
       let path = await getImageFilePath(imageToOverlay, naturalSize);
       //console.log('File path for ' + name + ': ' + path);
+      const resizedWidth = Math.round(naturalSize.x * scale);
+      const resizedHeight = Math.round(naturalSize.y * scale);
       await ImageResizer.createResizedImage(
         path,
-        Math.round(naturalSize.x * scale),
-        Math.round(naturalSize.y * scale),
+        resizedWidth,
+        resizedHeight,
         'PNG', // JPEG, PNG, or WEBP (Android only)
         RESIZE_QUALITY,
         0,
@@ -108,11 +113,50 @@ export default class App extends Component<AppProps, AppState> {
           // response.name is the name of the new image with the extension
           // response.size is the size of the new image
           imageToOverlay = response.uri;
+
+          if (rotation !== 0) {
+            console.log('must rotate to: ' + rotation);
+
+            // rotate an Image with simple tranformation
+            newImage = (
+              <Image
+                source={{uri: response.uri}}
+                style={[
+                  {
+                    position: 'absolute',
+                    left: coords.x * this.state.displayProportion,
+                    top: coords.y * this.state.displayProportion,
+                    width: resizedWidth * this.state.displayProportion,
+                    height: resizedHeight * this.state.displayProportion,
+                    //backgroundColor: 'rgba(255,0,255,0.4)',
+                  },
+                  {transform: [{rotateZ: `${rotation}rad`}]},
+                ]}
+              />
+            );
+          }
         })
         .catch(err => {
           console.warn(`Error resizing + rotating image '${name}: ${err}`);
         });
+    } else {
+      // drag only, no scaling or rotation
+      newImage = (
+        <Image
+          source={imageSource(name)}
+          style={{
+            position: 'absolute',
+            left: coords.x * this.state.displayProportion,
+            top: coords.y * this.state.displayProportion,
+            width: naturalSize.x * this.state.displayProportion,
+            height: naturalSize.y * this.state.displayProportion,
+            //backgroundColor: 'rgba(255,0,255,0.4)',
+          }}
+        />
+      );
     }
+    this.setState({rotatedImage: newImage});
+    /*
     // Next, add an item to the array of mergeOperations
     let arr = this.state.mergeOperations;
     arr.push({
@@ -147,6 +191,7 @@ export default class App extends Component<AppProps, AppState> {
         );
       });
     });
+    */
   };
 
   render() {
@@ -195,13 +240,19 @@ export default class App extends Component<AppProps, AppState> {
             />
           ))}
         </View>
+
         <View
           style={{
             width: DEVICE_WIDTH,
             height: this.state.dropAreaHeight,
             marginBottom: 30,
           }}>
+          <ImageBackground
+            source={BG_IMAGE_SOURCE}
+            style={{height: this.state.dropAreaHeight}}
+            resizeMode="contain"></ImageBackground>
           {mergedImage}
+          {this.state.rotatedImage}
         </View>
       </View>
     );
@@ -225,7 +276,8 @@ const styles = StyleSheet.create({
   row: {
     width: DEVICE_WIDTH,
     flexDirection: 'row',
-    justifyContent: 'flex-start', // JESSEFIX 'space-evenly',
+    justifyContent: 'space-evenly',
+    alignContent: 'center',
   },
   dropZone: {
     width: DEVICE_WIDTH,
