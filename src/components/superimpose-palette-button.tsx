@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import {Image, View} from 'react-native';
 
-import CrazyBox from './crazy-box';
+import DraggableItem from './draggable-item';
 import {imageSource} from '../utils/files';
 
 const UNDEFINED_NUMBER = -1;
@@ -12,23 +12,23 @@ export type xyCoordinates = {
   y: number;
 };
 
-interface DraggableImageProps {
+interface SuperimposePaletteButtonProps {
   imageName?: string;
   displaySizeProportion: number;
   dropBehavior?: Function | null;
 }
 
-interface DraggableImageState {
-  showDraggableImage: boolean;
+interface SuperimposePaletteButtonState {
+  show: boolean;
   naturalWidth: number;
   naturalHeight: number;
   displayWidth: number;
   displayHeight: number;
 }
 
-export default class DraggableImage extends Component<
-  DraggableImageProps,
-  DraggableImageState
+export default class SuperimposePaletteButton extends Component<
+  SuperimposePaletteButtonProps,
+  SuperimposePaletteButtonState
 > {
   private _ref: View | null;
   private _startLocation: xyCoordinates;
@@ -40,7 +40,7 @@ export default class DraggableImage extends Component<
     this._startLocation = {x: 0, y: 0};
 
     this.state = {
-      showDraggableImage: true,
+      show: true,
       naturalWidth: UNDEFINED_NUMBER,
       naturalHeight: UNDEFINED_NUMBER,
       displayWidth: UNDEFINED_NUMBER,
@@ -49,57 +49,65 @@ export default class DraggableImage extends Component<
   }
 
   componentDidMount(): void {
-    const temp = Image.resolveAssetSource(imageSource(this.props.imageName));
-    const ratio = Math.max(
-      MINIMUM_SIZE_RATIO,
-      this.props.displaySizeProportion,
-    );
-    console.log(
-      'this.props.displaySizeProportion: ' + this.props.displaySizeProportion,
-    );
-    this.setState(
-      {
-        naturalWidth: temp.width,
-        naturalHeight: temp.height,
-        displayWidth: Math.round(temp.width * ratio),
-        displayHeight: Math.round(temp.height * ratio),
-      },
-      () =>
-        console.log(
-          'Image ' +
-            this.props.imageName +
-            ' resized to ' +
-            this.state.displayWidth +
-            ' x ' +
-            this.state.displayHeight,
-        ),
-    );
+    if (this.props.imageName) {
+      const temp = Image.resolveAssetSource(imageSource(this.props.imageName));
+      const ratio = Math.max(
+        MINIMUM_SIZE_RATIO,
+        this.props.displaySizeProportion,
+      );
+      console.log(
+        'this.props.displaySizeProportion: ' + this.props.displaySizeProportion,
+      );
+      this.setState(
+        {
+          naturalWidth: temp.width,
+          naturalHeight: temp.height,
+          displayWidth: Math.round(temp.width * ratio),
+          displayHeight: Math.round(temp.height * ratio),
+        },
+        () =>
+          console.log(
+            'Image ' +
+              this.props.imageName +
+              ' resized to ' +
+              this.state.displayWidth +
+              ' x ' +
+              this.state.displayHeight,
+          ),
+      );
+    }
   }
 
   handleDrop = (
-    dropCoordinates: xyCoordinates,
+    movementOfMidpoint: xyCoordinates,
     rotation: number,
     scale: number,
   ) => {
-    // Determine the relative position of the dropped CrazyBox vs.
+    // Determine the relative position of the dropped DraggableItem vs.
     // the page origin (which happens to be the drop-spot's origin, too).
-    let adjustedCoords = {
+    const yDeltaBasedOnScale = (this.state.displayHeight * (scale - 1)) / 2;
+    const xDeltaBasedOnScale = (this.state.displayWidth * (scale - 1)) / 2;
+    let upperLeftCorner = {
       x:
-        (dropCoordinates.x + this._startLocation.x) /
+        (this._startLocation.x + movementOfMidpoint.x - yDeltaBasedOnScale) /
         this.props.displaySizeProportion,
       y:
-        (dropCoordinates.y + this._startLocation.y) /
+        (this._startLocation.y + movementOfMidpoint.y - xDeltaBasedOnScale) /
         this.props.displaySizeProportion,
     };
     console.log(
-      `Dropped at: ${adjustedCoords.x}, ${adjustedCoords.y} with rotation: ${rotation} and scale: ${scale}`,
+      `Dropped at: ${upperLeftCorner.x}, ${upperLeftCorner.y} with rotation: ${rotation} and scale: ${scale}`,
     );
     if (this.props.dropBehavior)
       this.props.dropBehavior(
         this.props.imageName,
-        adjustedCoords,
+        upperLeftCorner,
         rotation,
         scale,
+        {
+          x: this.state.naturalWidth,
+          y: this.state.naturalHeight,
+        },
       );
   };
 
@@ -135,7 +143,7 @@ export default class DraggableImage extends Component<
             );
           }
         }}>
-        <CrazyBox
+        <DraggableItem
           dimensions={{x: this.state.displayWidth, y: this.state.displayHeight}}
           onDrop={this.handleDrop}
           imageName={this.props.imageName}

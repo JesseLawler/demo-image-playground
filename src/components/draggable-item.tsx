@@ -12,15 +12,19 @@ import {imageSource} from '../utils/files';
 import {xyCoordinates} from '../utils/interfaces';
 
 const MINIMUM_SIZE_RATIO = 0.1;
-const SIZE_INCREASE_ON_PRESS = 1.2;
+const SIZE_INCREASE_ON_PRESS = 1.0; // JESSEFIX
 
-interface CrazyBoxParameters {
+interface DraggableItemParameters {
   dimensions: xyCoordinates;
   onDrop?: Function;
   imageName?: string;
 }
 
-const CrazyBox = ({dimensions, imageName, onDrop}: CrazyBoxParameters) => {
+const DraggableItem = ({
+  dimensions,
+  imageName,
+  onDrop,
+}: DraggableItemParameters) => {
   const isPressed = useSharedValue(false);
   const offset = useSharedValue({x: 0, y: 0});
   const start = useSharedValue({x: 0, y: 0});
@@ -42,7 +46,7 @@ const CrazyBox = ({dimensions, imageName, onDrop}: CrazyBoxParameters) => {
         {rotateZ: `${rotation.value}rad`},
       ],
       backgroundColor: imageName
-        ? 'transparent'
+        ? 'rgba(100,0,200,0.4)' // JESSEFIX 'transparent'
         : isPressed.value
         ? 'yellow'
         : 'red',
@@ -75,6 +79,7 @@ const CrazyBox = ({dimensions, imageName, onDrop}: CrazyBoxParameters) => {
         x: offset.value.x,
         y: offset.value.y,
       };
+      console.log(`offset.value.y: ${offset.value.y}`);
       runOnJS(relayCoordinates)(
         start.value,
         savedRotation.value,
@@ -146,4 +151,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CrazyBox;
+export default DraggableItem;

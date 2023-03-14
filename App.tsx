@@ -8,12 +8,14 @@ import {
   View,
 } from 'react-native';
 import RNPhotoManipulator, {
+  ImageSource,
   PhotoBatchOperations,
 } from 'react-native-photo-manipulator';
+import ImageResizer from '@bam.tech/react-native-image-resizer';
 
-import {imageSource} from './src/utils/files';
+import {getImageFilePath, imageSource} from './src/utils/files';
 import {xyCoordinates} from './src/utils/interfaces';
-import DraggableImage from './src/components/draggable-image';
+import SuperimposePaletteButton from './src/components/superimpose-palette-button';
 
 const CIRCLE_RADIUS = 40;
 const DEVICE_WIDTH = Dimensions.get('window').width;
@@ -51,9 +53,15 @@ export default class App extends Component<AppProps, AppState> {
       (temp.height / temp.width) * DEVICE_WIDTH,
     );
     this.setState({
-      arrayOfIconNames: ['green-square', 'arrow-up', 'caret-right'],
+      arrayOfIconNames: [
+        'blue-square',
+        //'green-square',
+        'arrow-up',
+        //'caret-right',
+      ],
       displayProportion: Math.round((DEVICE_WIDTH * 1000) / temp.width) / 1000,
       dropAreaHeight: relativeHeight,
+      /* JESSEFIX - text demo
       mergeOperations: [
         {
           operation: 'text' as any,
@@ -65,25 +73,55 @@ export default class App extends Component<AppProps, AppState> {
           },
         },
       ],
+      */
       naturalImageDimensions: {x: temp.width, y: temp.height},
     });
   }
 
-  mergeImage = (
+  mergeImage = async (
     name: string,
     coords: xyCoordinates,
     rotation: number,
     scale: number,
+    naturalSize: xyCoordinates,
   ) => {
-    // First, add an item to the array of mergeOperations
+    const RESIZE_QUALITY = 100; // do this transformation at max quality, since it's going to be re-smashed into the background image in the next step
+    const MERGE_QUALITY = 90;
+    let imageToOverlay: ImageSource = imageSource(name); // default
+    if (rotation !== 0) console.log('must rotate to: ' + rotation); // JESSEFIX
+    // First rotate + resize the image, if necessary
+    if (scale !== 1) {
+      let path = await getImageFilePath(imageToOverlay, naturalSize);
+      //console.log('File path for ' + name + ': ' + path);
+      await ImageResizer.createResizedImage(
+        path,
+        Math.round(naturalSize.x * scale),
+        Math.round(naturalSize.y * scale),
+        'PNG', // JPEG, PNG, or WEBP (Android only)
+        RESIZE_QUALITY,
+        0,
+        // no need to set the optional outputPath parameter
+      )
+        .then(response => {
+          // response.uri is the URI of the new image that can now be displayed, uploaded...
+          // response.path is the path of the new image
+          // response.name is the name of the new image with the extension
+          // response.size is the size of the new image
+          imageToOverlay = response.uri;
+        })
+        .catch(err => {
+          console.warn(`Error resizing + rotating image '${name}: ${err}`);
+        });
+    }
+    // Next, add an item to the array of mergeOperations
     let arr = this.state.mergeOperations;
     arr.push({
       operation: 'overlay' as any,
-      overlay: imageSource(name),
+      overlay: imageToOverlay,
       position: coords,
     });
     this.setState({mergeOperations: arr}, () => {
-      // Second, after the state has been updated, (re)perform the merge...
+      // Finally, after the state has been updated, (re)perform the merge...
       const image = BG_IMAGE_SOURCE;
       const cropRegion = {
         x: 0,
@@ -95,18 +133,12 @@ export default class App extends Component<AppProps, AppState> {
         width: this.state.naturalImageDimensions.x,
         height: this.state.naturalImageDimensions.y,
       }; // i.e. same size
-      const quality = 90;
-
-      if (rotation !== 1) console.log('must rotate to: ' + rotation); // JESSEFIX
-
-      if (scale !== 1) console.log('must scale to: ' + scale); // JESSEFIX
-
       RNPhotoManipulator.batch(
         image,
         this.state.mergeOperations,
         cropRegion,
         targetSize,
-        quality,
+        MERGE_QUALITY,
       ).then(path => {
         this.setState({mergedImagePath: path}, () =>
           console.log(
@@ -156,7 +188,7 @@ export default class App extends Component<AppProps, AppState> {
         </View>
         <View style={styles.row}>
           {this.state.arrayOfIconNames?.map((iconName: string) => (
-            <DraggableImage
+            <SuperimposePaletteButton
               imageName={iconName}
               dropBehavior={this.mergeImage}
               displaySizeProportion={this.state.displayProportion}
@@ -193,7 +225,7 @@ const styles = StyleSheet.create({
   row: {
     width: DEVICE_WIDTH,
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
+    justifyContent: 'flex-start', // JESSEFIX 'space-evenly',
   },
   dropZone: {
     width: DEVICE_WIDTH,
