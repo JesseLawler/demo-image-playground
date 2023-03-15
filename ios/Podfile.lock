@@ -447,6 +447,8 @@ PODS:
     - React-RCTText
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNSketchCanvas (1.0.3):
+    - React
   - SocketRocket (0.6.0)
   - WCPhotoManipulator (2.0.4)
   - Yoga (1.14.0)
@@ -516,6 +518,7 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
+  - "RNSketchCanvas (from `../node_modules/@sourcetoad/react-native-sketch-canvas`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -612,6 +615,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
+  RNSketchCanvas:
+    :path: "../node_modules/@sourcetoad/react-native-sketch-canvas"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -666,6 +671,7 @@ SPEC CHECKSUMS:
   ReactCommon: b49a4b00ca6d181ff74b17c12b2d59ac4add0bde
   RNGestureHandler: 071d7a9ad81e8b83fe7663b303d132406a7d8f39
   RNReanimated: f0dd6b881808e635ef0673f89642937d6c141314
+  RNSketchCanvas: ad36eb30df2ca5198cacc8815a6d2c59890a294b
   SocketRocket: fccef3f9c5cedea1353a9ef6ada904fde10d6608
   WCPhotoManipulator: 45b7be19b75c9edf6d2b44f2f61dbc3673862a8f
   Yoga: 79dd7410de6f8ad73a77c868d3d368843f0c93e0

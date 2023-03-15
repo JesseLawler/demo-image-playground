@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import ViewShot from 'react-native-view-shot';
+import {SketchCanvas} from '@sourcetoad/react-native-sketch-canvas';
 
 import {imageSource} from './src/utils/files';
 import {xyCoordinates} from './src/utils/interfaces';
@@ -17,6 +18,7 @@ import SuperimposePaletteButton from './src/components/superimpose-palette-butto
 const CIRCLE_RADIUS = 40;
 const DEVICE_WIDTH = Dimensions.get('window').width;
 const BG_IMAGE_SOURCE = require('./src/assets/images/profile-bg-bw.jpg');
+const MANUAL_DRAWING_COLOR = '#00ffcc';
 const MERGE_HIGHLIGHT_COLOR = '#cc00ff';
 const OUTPUT_IMAGE_FORMAT = 'jpg';
 const OUTPUT_IMAGE_FILENAME = 'myfile.' + OUTPUT_IMAGE_FORMAT;
@@ -36,6 +38,8 @@ interface AppState {
 }
 
 export default class App extends Component<AppProps, AppState> {
+  private _drawingCanvas: any;
+  private _duplicateCanvas: any;
   private _layoutArea: any;
   private _layerCounter = 0;
 
@@ -98,6 +102,22 @@ export default class App extends Component<AppProps, AppState> {
         this.setState({mergedImage: mergedImage});
       });
     });
+  };
+
+  clearDrawings = () => {
+    this._drawingCanvas.clear();
+    this._duplicateCanvas.clear();
+  };
+
+  duplicateDrawing = () => {
+    setTimeout(() => {
+      // get the updated paths
+      let paths = this._drawingCanvas.getPaths();
+      let latestPath = paths[paths.length - 1];
+      console.log('latestPath: ' + JSON.stringify(latestPath));
+      // add the new path
+      this._duplicateCanvas.addPath(latestPath);
+    }, 200); // add a brief delay so the paths are ready
   };
 
   setImageOverlay = async (
@@ -168,12 +188,23 @@ export default class App extends Component<AppProps, AppState> {
             source={BG_IMAGE_SOURCE}
             style={{height: this.state.dropAreaHeight}}
             resizeMode="contain">
-            <Text style={styles.text}>Drop them here!</Text>
-            <Text style={styles.dropAreaDetails} numberOfLines={3}>
-              {details}
-            </Text>
+            <SketchCanvas
+              ref={ref => (this._drawingCanvas = ref)}
+              style={{
+                flex: 1,
+                //borderColor: 'yellow',
+                //borderWidth: 1,
+              }}
+              strokeColor={MANUAL_DRAWING_COLOR}
+              strokeWidth={3}
+              onStrokeEnd={this.duplicateDrawing}
+            />
+            <Text style={styles.text}>Annotate this image!</Text>
           </ImageBackground>
         </View>
+        <Text style={styles.dropAreaDetails} numberOfLines={3}>
+          {details}
+        </Text>
         <View style={styles.row}>
           {this.state.arrayOfIconNames.map(iconName => (
             <SuperimposePaletteButton
@@ -184,26 +215,22 @@ export default class App extends Component<AppProps, AppState> {
             />
           ))}
         </View>
-        <Pressable
-          style={{
-            paddingVertical: 8,
-            paddingHorizontal: 20,
-            borderRadius: 8,
-            backgroundColor: 'rgba(0,0,255,0.1)',
-            borderColor: MERGE_HIGHLIGHT_COLOR,
-            borderWidth: 2,
-          }}
-          onPress={this.createMergedImage}>
-          <Text style={{color: 'white', fontSize: 18, fontWeight: '500'}}>
-            Render Merged Image
-          </Text>
-        </Pressable>
+        <View style={{flexDirection: 'row'}}>
+          <Pressable style={styles.button} onPress={this.createMergedImage}>
+            <Text style={styles.buttonText}>Render Merged Image</Text>
+          </Pressable>
+          <Pressable style={styles.button} onPress={this.clearDrawings}>
+            <Text style={styles.buttonText}>Clear Drawings</Text>
+          </Pressable>
+        </View>
         <ViewShot
           ref={ref => (this._layoutArea = ref)}
           style={{
+            position: 'absolute',
+            bottom: 0,
             width: DEVICE_WIDTH,
             height: this.state.dropAreaHeight,
-            marginBottom: 30,
+            marginBottom: 20,
           }}
           options={{
             fileName: OUTPUT_IMAGE_FILENAME,
@@ -213,7 +240,15 @@ export default class App extends Component<AppProps, AppState> {
           <ImageBackground
             source={BG_IMAGE_SOURCE}
             style={{height: this.state.dropAreaHeight}}
-            resizeMode="contain"></ImageBackground>
+            resizeMode="contain">
+            <SketchCanvas
+              ref={ref => (this._duplicateCanvas = ref)}
+              style={{flex: 1}}
+              strokeColor={MANUAL_DRAWING_COLOR}
+              strokeWidth={3}
+              touchEnabled={false}
+            />
+          </ImageBackground>
           {this.state.imageLayers.map((image: JSX.Element) => image)}
           {this.state.mergedImage}
         </ViewShot>
@@ -226,9 +261,24 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     flexDirection: 'column',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     backgroundColor: 'black',
+  },
+  button: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,255,0.1)',
+    borderColor: MERGE_HIGHLIGHT_COLOR,
+    borderWidth: 2,
+    marginTop: 20,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '500',
   },
   circle: {
     backgroundColor: 'skyblue',
@@ -248,15 +298,15 @@ const styles = StyleSheet.create({
   },
   dropAreaDetails: {
     color: '#777777',
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 21,
     width: '100%',
     textAlign: 'center',
-    position: 'absolute',
-    bottom: -70,
+    marginTop: 7,
   },
   text: {
-    marginTop: 60,
+    position: 'absolute',
+    top: 40,
     width: '100%',
     textAlign: 'center',
     color: '#fff',
