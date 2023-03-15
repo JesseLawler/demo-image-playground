@@ -37,3 +37,8 @@ export async function createLocalImageFile(
   );
   return result;
 }
+
+export function calculateDaysBetweenDates(begin: Date, end: Date) {
+  const diff = Math.abs(end.getTime() - begin.getTime());
+  return Math.ceil(diff / (1000 * 3600 * 24));
+}

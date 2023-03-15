@@ -14,6 +14,7 @@ import {SketchCanvas} from '@sourcetoad/react-native-sketch-canvas';
 import {imageSource} from './src/utils/files';
 import {xyCoordinates} from './src/utils/interfaces';
 import SuperimposePaletteButton from './src/components/superimpose-palette-button';
+import {generateRandomNumber} from './src/utils/numbers';
 
 const CIRCLE_RADIUS = 40;
 const DEVICE_WIDTH = Dimensions.get('window').width;
@@ -35,6 +36,7 @@ interface AppState {
   dropAreaHeight: number;
   hasDrawings: boolean;
   imageLayers: any[];
+  isAwaitingAnnotationTap: boolean;
   mergedImage: any;
   naturalImageDimensions: xyCoordinates;
 }
@@ -54,6 +56,7 @@ export default class App extends Component<AppProps, AppState> {
       dropAreaHeight: 0,
       hasDrawings: false,
       imageLayers: [],
+      isAwaitingAnnotationTap: false,
       mergedImage: null,
       naturalImageDimensions: {x: 0, y: 0},
     };
@@ -108,7 +111,7 @@ export default class App extends Component<AppProps, AppState> {
         </Text>
       </View>
     );
-    this.setState({bubble: blurb});
+    this.setState({bubble: blurb, isAwaitingAnnotationTap: true});
   };
 
   createMergedImage = () => {
@@ -152,9 +155,34 @@ export default class App extends Component<AppProps, AppState> {
       // get the updated paths
       let paths = this._drawingCanvas.getPaths();
       let latestPath = paths[paths.length - 1];
+      //console.log(`latestPath: ${JSON.stringify(latestPath)}`);
       // add the new path
       this._duplicateCanvas.addPath(latestPath);
     }, 150); // add a brief delay so the paths are ready
+  };
+
+  handleDrawingStart = (x: number, y: number) => {
+    if (this.state.isAwaitingAnnotationTap) {
+      //console.log(`We have a touch at ${x}, ${y} on the drawing canvas.`);
+      // add a new line
+      let strLinePath = `{
+        "path": {
+          "id": ${generateRandomNumber()},
+          "color": "white",
+          "width": 3,
+          "data": ["${x},${y}", "100,100", "0,0"]
+        },
+        "size": {
+          "width": ${DEVICE_WIDTH},
+          "height": ${this.state.dropAreaHeight}
+        },
+        "drawer": null
+      }`; // JESSEFIX - These bezier curves are a trip. Figure out how to "aim" them better.
+      let linePath = JSON.parse(strLinePath);
+      this.setState({isAwaitingAnnotationTap: false, bubble: null}, () => {
+        this._drawingCanvas.addPath(linePath);
+      });
+    }
   };
 
   setImageOverlay = async (
@@ -232,8 +260,13 @@ export default class App extends Component<AppProps, AppState> {
                 //borderColor: 'yellow',
                 //borderWidth: 1,
               }}
-              strokeColor={MANUAL_DRAWING_COLOR}
+              strokeColor={
+                this.state.isAwaitingAnnotationTap
+                  ? '#0000ffff'
+                  : MANUAL_DRAWING_COLOR
+              }
               strokeWidth={3}
+              onStrokeStart={this.handleDrawingStart}
               onStrokeEnd={this.duplicateDrawing}
             />
             <Text style={styles.text}>Annotate this image!</Text>
