@@ -30,8 +30,10 @@ interface AppProps {
 
 interface AppState {
   arrayOfIconNames: string[];
+  bubble?: any;
   displayProportion: number;
   dropAreaHeight: number;
+  hasDrawings: boolean;
   imageLayers: any[];
   mergedImage: any;
   naturalImageDimensions: xyCoordinates;
@@ -50,6 +52,7 @@ export default class App extends Component<AppProps, AppState> {
       arrayOfIconNames: [],
       displayProportion: 0,
       dropAreaHeight: 0,
+      hasDrawings: false,
       imageLayers: [],
       mergedImage: null,
       naturalImageDimensions: {x: 0, y: 0},
@@ -74,6 +77,39 @@ export default class App extends Component<AppProps, AppState> {
       naturalImageDimensions: {x: temp.width, y: temp.height},
     });
   }
+
+  addNote = () => {
+    const defaultNoteText =
+      'This is an annotation that a user will be able to type in.  Just a demo for right now.';
+    const maxWidth = DEVICE_WIDTH / 2;
+    const lineHeight = styles.bubbleText.lineHeight;
+    const approximateLines = Math.ceil(defaultNoteText.length / 25);
+    const height =
+      lineHeight * approximateLines +
+      2 * (styles.bubble.paddingVertical + styles.bubble.borderWidth);
+    const blurb = (
+      <View
+        style={[
+          styles.bubble,
+          {
+            maxWidth: maxWidth,
+            height: height,
+          },
+        ]}>
+        <Text numberOfLines={10} style={styles.bubbleText}>
+          {defaultNoteText}
+        </Text>
+        <Text
+          style={[
+            styles.bubbleInstruction,
+            {left: maxWidth + 5, height: height},
+          ]}>
+          Tap the image where you would like this annotation to point.
+        </Text>
+      </View>
+    );
+    this.setState({bubble: blurb});
+  };
 
   createMergedImage = () => {
     // first, kill any previous mergedImage...
@@ -104,20 +140,21 @@ export default class App extends Component<AppProps, AppState> {
     });
   };
 
-  clearDrawings = () => {
+  clearSketches = () => {
     this._drawingCanvas.clear();
     this._duplicateCanvas.clear();
+    this.setState({hasDrawings: false});
   };
 
   duplicateDrawing = () => {
     setTimeout(() => {
+      this.setState({hasDrawings: true});
       // get the updated paths
       let paths = this._drawingCanvas.getPaths();
       let latestPath = paths[paths.length - 1];
-      console.log('latestPath: ' + JSON.stringify(latestPath));
       // add the new path
       this._duplicateCanvas.addPath(latestPath);
-    }, 200); // add a brief delay so the paths are ready
+    }, 150); // add a brief delay so the paths are ready
   };
 
   setImageOverlay = async (
@@ -216,13 +253,24 @@ export default class App extends Component<AppProps, AppState> {
           ))}
         </View>
         <View style={{flexDirection: 'row'}}>
+          <Pressable style={styles.button} onPress={this.addNote}>
+            <Text style={styles.buttonText}>Add Note</Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.button,
+              this.state.hasDrawings ? {} : styles.disabled,
+            ]}
+            onPress={this.clearSketches}
+            disabled={!this.state.hasDrawings}>
+            <Text style={styles.buttonText}>Clear Sketches</Text>
+          </Pressable>
           <Pressable style={styles.button} onPress={this.createMergedImage}>
-            <Text style={styles.buttonText}>Render Merged Image</Text>
+            <Text style={styles.buttonText}>Render Image</Text>
           </Pressable>
-          <Pressable style={styles.button} onPress={this.clearDrawings}>
-            <Text style={styles.buttonText}>Clear Drawings</Text>
-          </Pressable>
+          {this.state.bubble}
         </View>
+
         <ViewShot
           ref={ref => (this._layoutArea = ref)}
           style={{
@@ -266,14 +314,45 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
   },
   button: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
     marginHorizontal: 5,
     borderRadius: 8,
     backgroundColor: 'rgba(0,0,255,0.1)',
     borderColor: MERGE_HIGHLIGHT_COLOR,
     borderWidth: 2,
     marginTop: 20,
+  },
+  bubble: {
+    position: 'absolute',
+    top: 64,
+    left: 4,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: 'white',
+  },
+  bubbleInstruction: {
+    position: 'absolute',
+    fontSize: 14,
+    /*fontStyle: 'italic',*/
+    color: MANUAL_DRAWING_COLOR,
+    fontWeight: '100',
+    fontFamily: 'Helvetica',
+    lineHeight: 17,
+    textAlign: 'left',
+    marginTop: 10,
+  },
+  bubbleText: {
+    color: '#050505',
+    fontSize: 15,
+    /*fontStyle: 'italic',*/
+    fontWeight: '400',
+    fontFamily: 'Helvetica',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   buttonText: {
     color: 'white',
@@ -286,6 +365,7 @@ const styles = StyleSheet.create({
     height: CIRCLE_RADIUS * 2,
     borderRadius: CIRCLE_RADIUS,
   },
+  disabled: {opacity: 0.7, borderColor: '#999999'},
   row: {
     width: DEVICE_WIDTH,
     flexDirection: 'row',
@@ -299,7 +379,7 @@ const styles = StyleSheet.create({
   dropAreaDetails: {
     color: '#777777',
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 20,
     width: '100%',
     textAlign: 'center',
     marginTop: 7,
