@@ -10,6 +10,15 @@ import {
 } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import {SketchCanvas} from '@sourcetoad/react-native-sketch-canvas';
+import {
+  G,
+  Line,
+  Polygon,
+  Rect,
+  Svg,
+  Text as SVGText,
+  TSpan,
+} from 'react-native-svg';
 
 import {imageSource} from './src/utils/files';
 import {xyCoordinates} from './src/utils/interfaces';
@@ -17,6 +26,10 @@ import SuperimposePaletteButton from './src/components/superimpose-palette-butto
 import {generateRandomNumber} from './src/utils/numbers';
 
 const CIRCLE_RADIUS = 40;
+const BUBBLE_MAX_WIDTH = 200;
+const BUBBLE_BORDER_COLOR = 'yellow';
+const DEMO_ANNOTATION_TEXT =
+  'This is an annotation that a user will be able to type in.  Just a demo for right now.';
 const DEVICE_WIDTH = Dimensions.get('window').width;
 const BG_IMAGE_SOURCE = require('./src/assets/images/profile-bg-bw.jpg');
 const MANUAL_DRAWING_COLOR = '#00ffcc';
@@ -30,6 +43,7 @@ interface AppProps {
 }
 
 interface AppState {
+  annotationBubble: any;
   arrayOfIconNames: string[];
   bubble?: any;
   displayProportion: number;
@@ -51,6 +65,7 @@ export default class App extends Component<AppProps, AppState> {
     super(props);
 
     this.state = {
+      annotationBubble: null,
       arrayOfIconNames: [],
       displayProportion: 0,
       dropAreaHeight: 0,
@@ -82,11 +97,9 @@ export default class App extends Component<AppProps, AppState> {
   }
 
   addNote = () => {
-    const defaultNoteText =
-      'This is an annotation that a user will be able to type in.  Just a demo for right now.';
     const maxWidth = DEVICE_WIDTH / 2;
     const lineHeight = styles.bubbleText.lineHeight;
-    const approximateLines = Math.ceil(defaultNoteText.length / 25);
+    const approximateLines = Math.ceil(DEMO_ANNOTATION_TEXT.length / 25);
     const height =
       lineHeight * approximateLines +
       2 * (styles.bubble.paddingVertical + styles.bubble.borderWidth);
@@ -100,7 +113,7 @@ export default class App extends Component<AppProps, AppState> {
           },
         ]}>
         <Text numberOfLines={10} style={styles.bubbleText}>
-          {defaultNoteText}
+          {DEMO_ANNOTATION_TEXT}
         </Text>
         <Text
           style={[
@@ -163,24 +176,58 @@ export default class App extends Component<AppProps, AppState> {
 
   handleDrawingStart = (x: number, y: number) => {
     if (this.state.isAwaitingAnnotationTap) {
-      //console.log(`We have a touch at ${x}, ${y} on the drawing canvas.`);
-      // add a new line
-      let strLinePath = `{
-        "path": {
-          "id": ${generateRandomNumber()},
-          "color": "white",
-          "width": 3,
-          "data": ["${x},${y}", "100,100", "0,0"]
-        },
-        "size": {
-          "width": ${DEVICE_WIDTH},
-          "height": ${this.state.dropAreaHeight}
-        },
-        "drawer": null
-      }`; // JESSEFIX - These bezier curves are a trip. Figure out how to "aim" them better.
-      let linePath = JSON.parse(strLinePath);
-      this.setState({isAwaitingAnnotationTap: false, bubble: null}, () => {
-        this._drawingCanvas.addPath(linePath);
+      console.log(`We have a touch at ${x}, ${y} on the drawing canvas.`);
+      const bufferUnderDropArea = 12;
+      let connectPointX = 200;
+      let connectPointY = this.state.dropAreaHeight + bufferUnderDropArea;
+      let strTrianglePoints = Math.round(x) + ',' + Math.round(y) + ' ';
+      strTrianglePoints += connectPointX + ',' + connectPointY + ' ';
+      strTrianglePoints += connectPointX + 5 + ',' + connectPointY;
+      console.log(`strTrianglePoints: ${strTrianglePoints}`);
+      const bubbleStem = (
+        <Svg height={this.state.dropAreaHeight * 2} width={DEVICE_WIDTH}>
+          <Polygon
+            points={strTrianglePoints}
+            fill={BUBBLE_BORDER_COLOR}
+            //stroke="purple"
+            //strokeWidth="1"
+          />
+          <G rotation="0" origin="0, 0">
+            <Rect
+              x={(DEVICE_WIDTH - BUBBLE_MAX_WIDTH) / 2 - 5}
+              y={this.state.dropAreaHeight + bufferUnderDropArea}
+              height="110"
+              width={BUBBLE_MAX_WIDTH}
+              stroke={BUBBLE_BORDER_COLOR}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              fill="#000000cc"
+            />
+            <SVGText
+              y={this.state.dropAreaHeight + bufferUnderDropArea + 25}
+              fill="#fff"
+              textAnchor="middle"
+              fontSize="15">
+              <TSpan x={DEVICE_WIDTH - BUBBLE_MAX_WIDTH}>
+                This is an annotation
+              </TSpan>
+              <TSpan x={DEVICE_WIDTH - BUBBLE_MAX_WIDTH} dy="22">
+                that a user will be able
+              </TSpan>
+              <TSpan x={DEVICE_WIDTH - BUBBLE_MAX_WIDTH} dy="22">
+                to type in. Just a demo
+              </TSpan>
+              <TSpan x={DEVICE_WIDTH - BUBBLE_MAX_WIDTH} dy="22">
+                for right now.
+              </TSpan>
+            </SVGText>
+          </G>
+        </Svg>
+      );
+      this.setState({
+        annotationBubble: bubbleStem,
+        bubble: null,
+        isAwaitingAnnotationTap: false,
       });
     }
   };
@@ -262,7 +309,7 @@ export default class App extends Component<AppProps, AppState> {
               }}
               strokeColor={
                 this.state.isAwaitingAnnotationTap
-                  ? '#0000ffff'
+                  ? '#00000000'
                   : MANUAL_DRAWING_COLOR
               }
               strokeWidth={3}
@@ -270,6 +317,7 @@ export default class App extends Component<AppProps, AppState> {
               onStrokeEnd={this.duplicateDrawing}
             />
             <Text style={styles.text}>Annotate this image!</Text>
+            {this.state.annotationBubble}
           </ImageBackground>
         </View>
         <Text style={styles.dropAreaDetails} numberOfLines={3}>
@@ -404,10 +452,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignContent: 'center',
+    zIndex: 20,
   },
   dropZone: {
     width: DEVICE_WIDTH,
     backgroundColor: '#00334d',
+    zIndex: 10,
   },
   dropAreaDetails: {
     color: '#777777',
@@ -416,6 +466,7 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
     marginTop: 7,
+    zIndex: 1,
   },
   text: {
     position: 'absolute',
